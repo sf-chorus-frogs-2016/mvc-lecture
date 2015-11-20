@@ -1,0 +1,73 @@
+#!/usr/bin/env ruby
+
+
+<<-DOCUMENTATION
+
+  ./todo
+
+  todo> add "item description"
+  todo> list
+  todo> remove item_id
+  todo> complete item_id
+  todo> uncomplete item_id
+
+DOCUMENTATION
+
+TODO_LIST = []
+
+def generate_unique_id
+  Time.now.to_i
+end
+
+def save
+  File.open('./data', 'w') do |file|
+    TODO_LIST.each do |item|
+      file.puts "#{item[:id]} - #{item[:value]}"
+    end
+  end
+end
+
+def load
+  File.read('./data').split("\n").each do |line|
+    id, value = line.split(' - ')
+    TODO_LIST << {id: id, value: value}
+  end
+end
+
+load
+
+loop do
+
+  print 'todo> '
+  matches = gets.chomp.match(/^(\w+)\s*(.*)$/)
+  command = matches[1]
+  argument = matches[2]
+
+  case command
+    when 'exit'
+      puts "bye bye"
+      exit
+
+    when 'add'
+      TODO_LIST << {
+        id: generate_unique_id,
+        value: argument,
+      }
+      save
+
+    when 'list'
+      TODO_LIST.each do |item|
+        puts "#{item[:id]} - #{item[:value]}"
+      end
+
+    when 'remove'
+      TODO_LIST.delete_if do |item|
+        item[:id] == argument.to_i
+      end
+      save
+
+    else
+      puts "unknown command #{command.inspect} #{argument.inspect}"
+  end
+
+end

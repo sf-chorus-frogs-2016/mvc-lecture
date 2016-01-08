@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require 'byebug'
 
 
 <<-DOCUMENTATION
@@ -8,25 +9,23 @@
   todo> add "item description"
   todo> list
   todo> remove item_id
-  todo> complete item_id
-  todo> uncomplete item_id
 
 DOCUMENTATION
 
 
-# model
-# - saving and loading
-# - adding and removing
-# - persisting our data
-# - dealing with buisness logic around our data
+# Model
+# saving and loading
+# adding and removing
+# persisting our data
+# dealing with business logic around our data
 class TodoList
 
   def initialize
     @list = []
   end
 
-  def each(&block)
-    @list.each(&block)
+  def each
+    @list.each { |item| yield(item) }
   end
 
   def add(value)
@@ -68,7 +67,7 @@ end
 
 
 # View
-#  presenting our data to a human
+# presenting our data to a human
 class TodoListView
 
   def initialize(todo_list)
@@ -86,24 +85,28 @@ class TodoListView
 end
 
 # Controller
-#  take a require, handle it and respond
+# take a request, handle it, and respond
 class Controller
 
   def run_command(command, argument)
-    if self.respond_to?(command)
-      send(command, argument)
-    else
-      puts "unknown command #{command.inspect} #{argument.inspect}"
+    begin
+      if self.respond_to?(command)
+        argument == "" ? send(command) : send(command, argument)
+      else
+        puts "unknown command #{command.inspect} with argument #{argument.inspect}"
+      end
+    rescue ArgumentError
+      puts "improper argument #{argument.inspect} for command #{command.inspect}"
     end
   end
 
   # the list action
-  def list(_)
+  def list
     load_todo_list!
     render_todo_list!
   end
 
-  def add(list_id, todo_list_item_value)
+  def add(todo_list_item_value)
     load_todo_list!
     @todo_list.add(todo_list_item_value)
     @todo_list.save
@@ -115,6 +118,15 @@ class Controller
     @todo_list.remove(item_id)
     @todo_list.save
     render_todo_list!
+  end
+
+  def help
+    actions = self.class.instance_methods(false).reject do |action|
+      [:run_command, :help].include? action
+    end
+    actions.each do |action|
+      puts action.to_s
+    end
   end
 
   private
@@ -130,11 +142,14 @@ class Controller
 
 end
 
+puts 'type exit to leave the program'
 loop do
   print 'todo> '
   matches = gets.chomp.match(/^(\w+)\s*(.*)$/)
+  next if matches.nil?
   command = matches[1]
   argument = matches[2]
+  break if %w(exit quit q).include? command
   Controller.new.run_command(command, argument)
 end
 

@@ -1,146 +1,18 @@
 #!/usr/bin/env ruby
-require 'byebug'
 
+require './todo'
+require './todo_view'
+require './todo_controller'
 
-<<-DOCUMENTATION
+# <<-DOCUMENTATION
 
-  ./todo
+#   ./todo
 
-  todo> add "item description"
-  todo> list
-  todo> remove item_id
+#   todo> add "item description"
+#   todo> list
+#   todo> remove item_id
 
-DOCUMENTATION
-
-
-# Model
-# saving and loading
-# adding and removing
-# persisting our data
-# dealing with business logic around our data
-class TodoList
-
-  def initialize
-    @list = []
-  end
-
-  def each
-    @list.each { |item| yield(item) }
-  end
-
-  def add(value)
-    @list << {
-      id: generate_unique_id,
-      value: value,
-    }
-  end
-
-  def remove(item_id)
-    @list.delete_if do |item|
-      item[:id] == item_id
-    end
-  end
-
-  def save
-    File.open('./data', 'w') do |file|
-      @list.each do |item|
-        file.puts "#{item[:id]} - #{item[:value]}"
-      end
-    end
-  end
-
-  def load
-    @list = []
-    File.read('./data').split("\n").each do |line|
-      id, value = line.split(' - ')
-      @list << {id: id, value: value}
-    end
-  end
-
-  private
-
-  def generate_unique_id
-    Time.now.to_i
-  end
-
-end
-
-
-# View
-# presenting our data to a human
-class TodoListView
-
-  def initialize(todo_list)
-    @todo_list = todo_list
-  end
-
-  def to_s
-    string = ""
-    @todo_list.each do |item|
-      string << "#{item[:id]} - #{item[:value]}\n"
-    end
-    string
-  end
-
-end
-
-# Controller
-# take a request, handle it, and respond
-class Controller
-
-  def run_command(command, argument)
-    begin
-      if self.respond_to?(command)
-        argument == "" ? send(command) : send(command, argument)
-      else
-        puts "unknown command #{command.inspect} with argument #{argument.inspect}"
-      end
-    rescue ArgumentError
-      puts "improper argument #{argument.inspect} for command #{command.inspect}"
-    end
-  end
-
-  # the list action
-  def list
-    load_todo_list!
-    render_todo_list!
-  end
-
-  def add(todo_list_item_value)
-    load_todo_list!
-    @todo_list.add(todo_list_item_value)
-    @todo_list.save
-    render_todo_list!
-  end
-
-  def remove(item_id)
-    load_todo_list!
-    @todo_list.remove(item_id)
-    @todo_list.save
-    render_todo_list!
-  end
-
-  def help
-    actions = self.class.instance_methods(false).reject do |action|
-      [:run_command, :help].include? action
-    end
-    actions.each do |action|
-      puts action.to_s
-    end
-  end
-
-  private
-
-  def load_todo_list!
-    @todo_list = TodoList.new
-    @todo_list.load
-  end
-
-  def render_todo_list!
-    puts TodoListView.new(@todo_list)
-  end
-
-end
+# DOCUMENTATION
 
 puts 'type exit to leave the program'
 loop do
@@ -152,4 +24,3 @@ loop do
   break if %w(exit quit q).include? command
   Controller.new.run_command(command, argument)
 end
-

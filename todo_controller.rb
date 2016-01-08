@@ -2,6 +2,10 @@
 # Controller
 # take a request, handle it, and respond
 class Controller
+  def initialize
+    load_todo_list
+  end
+
   def run_command(command, argument)
     if self.respond_to?(command)
       argument == '' ? send(command) : send(command, argument)
@@ -14,19 +18,16 @@ class Controller
 
   # the list action
   def list
-    load_todo_list
     render_todo_list
   end
 
   def add(todo_list_item_value)
-    load_todo_list
     @todo_list.add(todo_list_item_value)
     @todo_list.save
     render_todo_list
   end
 
   def remove(item_id)
-    load_todo_list
     @todo_list.remove(item_id)
     @todo_list.save
     render_todo_list

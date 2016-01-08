@@ -34,7 +34,6 @@ class TodoList
   end
 
   def load
-    @list = []
     File.read('./data').split("\n").each do |line|
       id, value = line.split(' - ')
       @list << { id: id, value: value }

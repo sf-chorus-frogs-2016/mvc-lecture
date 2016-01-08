@@ -13,61 +13,128 @@
 
 DOCUMENTATION
 
-TODO_LIST = []
 
-def generate_unique_id
-  Time.now.to_i
-end
+# model
+# - saving and loading
+# - adding and removing
+# - persisting our data
+# - dealing with buisness logic around our data
+class TodoList
 
-def save
-  File.open('./data', 'w') do |file|
-    TODO_LIST.each do |item|
-      file.puts "#{item[:id]} - #{item[:value]}"
+  def initialize
+    @list = []
+  end
+
+  def each(&block)
+    @list.each(&block)
+  end
+
+  def add(value)
+    @list << {
+      id: generate_unique_id,
+      value: value,
+    }
+  end
+
+  def remove(item_id)
+    @list.delete_if do |item|
+      item[:id] == item_id
     end
   end
-end
 
-def load
-  File.read('./data').split("\n").each do |line|
-    id, value = line.split(' - ')
-    TODO_LIST << {id: id, value: value}
+  def save
+    File.open('./data', 'w') do |file|
+      @list.each do |item|
+        file.puts "#{item[:id]} - #{item[:value]}"
+      end
+    end
   end
+
+  def load
+    @list = []
+    File.read('./data').split("\n").each do |line|
+      id, value = line.split(' - ')
+      @list << {id: id, value: value}
+    end
+  end
+
+  private
+
+  def generate_unique_id
+    Time.now.to_i
+  end
+
 end
 
-load
+
+# View
+#  presenting our data to a human
+class TodoListView
+
+  def initialize(todo_list)
+    @todo_list = todo_list
+  end
+
+  def to_s
+    string = ""
+    @todo_list.each do |item|
+      string << "#{item[:id]} - #{item[:value]}\n"
+    end
+    string
+  end
+
+end
+
+# Controller
+#  take a require, handle it and respond
+class Controller
+
+  def run_command(command, argument)
+    if self.respond_to?(command)
+      send(command, argument)
+    else
+      puts "unknown command #{command.inspect} #{argument.inspect}"
+    end
+  end
+
+  # the list action
+  def list(_)
+    load_todo_list!
+    render_todo_list!
+  end
+
+  def add(list_id, todo_list_item_value)
+    load_todo_list!
+    @todo_list.add(todo_list_item_value)
+    @todo_list.save
+    render_todo_list!
+  end
+
+  def remove(item_id)
+    load_todo_list!
+    @todo_list.remove(item_id)
+    @todo_list.save
+    render_todo_list!
+  end
+
+  private
+
+  def load_todo_list!
+    @todo_list = TodoList.new
+    @todo_list.load
+  end
+
+  def render_todo_list!
+    puts TodoListView.new(@todo_list)
+  end
+
+end
 
 loop do
-
   print 'todo> '
   matches = gets.chomp.match(/^(\w+)\s*(.*)$/)
   command = matches[1]
   argument = matches[2]
-
-  case command
-    when 'exit'
-      puts "bye bye"
-      exit
-
-    when 'add'
-      TODO_LIST << {
-        id: generate_unique_id,
-        value: argument,
-      }
-      save
-
-    when 'list'
-      TODO_LIST.each do |item|
-        puts "#{item[:id]} - #{item[:value]}"
-      end
-
-    when 'remove'
-      TODO_LIST.delete_if do |item|
-        item[:id] == argument.to_i
-      end
-      save
-
-    else
-      puts "unknown command #{command.inspect} #{argument.inspect}"
-  end
-
+  Controller.new.run_command(command, argument)
 end
+
